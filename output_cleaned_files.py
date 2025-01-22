@@ -2,6 +2,7 @@
 
 """Load neccesary packages and modules"""
 import pandas as pd
+from pprint import pprint
 from functions import FileFunctions, FindCentersFunctions, FindPairsFunctions
 from apply_correction_topo import ApplyTopoCorrection
 from apply_buffer import ApplyBuffer
@@ -11,9 +12,9 @@ ff = FileFunctions()
 
 """Select files and directories containing necceary info"""
 experiment_summary = ff.load_fn("Select experiment summary file", [("CSV Files", "*.csv")])
+topo_dir = ff.load_dn("Select directory with all topography tif files")
 #offsets_dir = ff.load_dn("Select directory with all offsets files")
-#topo_dir = ff.load_dn("Select directory with all topography tif files")
-#wse_dir = ff.load_dn("Select directory with all WSE csv files")
+wse_dir = ff.load_dn("Select directory with all WSE csv files")
 #centroids_dir = ff.load_dn("Select directory with all centroids files")
 
 """Create a set of pandas dataframes (one for each flood magnitude/forest stand density) that show all of the files that each experiment has"""
@@ -32,13 +33,16 @@ h_four_df = pd.DataFrame(columns=["Experiment", "NowoodTopo", "WoodTopo", "Nowoo
 
 
 #Low flood dfs
-l_pointfive_df = pd.DataFrame(columns=["Experiment", "NowoodTopo", "WoodTopo", "ReTopo", "NowoodWSE", "WoodWSE", "ReWSE", "PreviousOffset", "NowoodOffset", "ReOffset"])
+l_pointfive_df = pd.DataFrame(columns=["Experiment", "NowoodTopo", "WoodTopo", "RemobilizationTopo", "NowoodWSE", "WoodWSE", "RemobilizationWSE", "PreviousOffset", "NowoodOffset", "ReOffset"])
 
-l_one_df = pd.DataFrame(columns=["Experiment", "NowoodTopo", "WoodTopo", "ReTopo", "NowoodWSE", "WoodWSE", "ReWSE", "PreviousOffset", "NowoodOffset", "ReOffset"])
+l_one_df = pd.DataFrame(columns=["Experiment", "NowoodTopo", "WoodTopo", "RemobilizationTopo", "NowoodWSE", "WoodWSE", "RemobilizationWSE", "PreviousOffset", "NowoodOffset", "RemobilizationOffset"])
 
-l_two_df = pd.DataFrame(columns=["Experiment", "NowoodTopo", "WoodTopo", "ReTopo", "NowoodWSE", "WoodWSE", "ReWSE", "PreviousOffset", "NowoodOffset", "ReOffset"])
+l_two_df = pd.DataFrame(columns=["Experiment", "NowoodTopo", "WoodTopo", "RemobilizationTopo", "NowoodWSE", "WoodWSE", "RemobilizationWSE", "PreviousOffset", "NowoodOffset", "RemobilizationOffset"])
 
-l_four_df = pd.DataFrame(columns=["Experiment", "NowoodTopo", "WoodTopo", "ReTopo", "NowoodWSE", "WoodWSE", "ReWSE", "PreviousOffset", "NowoodOffset", "ReOffset"])
+l_four_df = pd.DataFrame(columns=["Experiment", "NowoodTopo", "WoodTopo", "RemobilizationTopo", "NowoodWSE", "WoodWSE", "RemobilizationWSE", "PreviousOffset", "NowoodOffset", "RemobilizationOffset"])
+
+#list of dataframes (for use in future iterating)
+dfs = [autoc_df, h_pointfive_df, h_one_df, h_two_df, h_four_df, l_pointfive_df, l_one_df, l_two_df, l_four_df]
 
 """Use experiment summary file to create rows for each experiment in the appropriate dataframe"""
 #create dataframe for experiment summary
@@ -74,29 +78,41 @@ for i, row in exp_sum_df.iterrows():
     if row["Flood type"] == "L" and row["Forest Stand Density"] == 4.0:
         l_four_df.loc[len(l_four_df)] = {"Experiment" : row["Experiment Name"]}
 
-print("Autochthonous: ")
-print(autoc_df)
+"""Populate the topography columns of the dataframes"""
+#load topo files into a list
+topo_files_list = ff.find_files_with_string(topo_dir, search_string = "2024", filetype = ".tif")
 
-print("High 0.5: ")
-print(h_pointfive_df)
+#iterate through the list and sort files into their appropriate dataframe
+for i, file in enumerate(topo_files_list):
+    #gather information from filename
+    directory, basename, exp = ff.extract_info_from_filename(file)
+    scan_type = basename.split("_")[-1].split(".")[0]
 
-print("High 1.0: ")
-print(h_one_df)
+    #look for where the file should go in the dataframes above
+    for i, df in enumerate(dfs):
+        row_index = df[df["Experiment"] == exp].index
+        if not row_index.empty:
 
-print("High 2.0: ")
-print(h_two_df)
+            #determine the appropriate column
+            column_name = scan_type + "Topo"
+            matching_columns = [col for col in df.columns if col.lower() == column_name.lower()]
 
-print("High 4.0: ")
-print(h_four_df)
+            if matching_columns:
+                target_column = matching_columns[0]
 
-print("Low 0.5: ")
-print(l_pointfive_df)
+                #fill with filename
+                df.loc[row_index, target_column] = file
+        
+#We have loaded all of the files that belong to a particular experiment (i.e. were recorded on that day) we will deal with the nowood scans for experiemnts that borrow them when we do the offsets
 
-print("Low 1.0: ")
-print(l_one_df)
 
-print("Low 2.0: ")
-print(l_two_df)
+"""Populate the WSE columns of the dataframes"""
+#load WSE files into a list
+wse_files_list = ff.find_files_with_string(wse_dir, search_string = "MAS", filetype = ".CSV")
 
-print("Low 4.0: ")
-print(l_four_df)
+for i, file in enumerate(wse_files_list):
+    directory, basename, exp = ff.extract_info_from_filename(file)
+    print(basename)
+    print(exp)
+
+"""Populate the Offset columns of the dataframes"""
