@@ -68,11 +68,13 @@ class ApplyBuffer:
                 print(f"{file_to_remove} does not exist, so does not need to be removed.")
 
 
-ff = FileFunctions()
-ab = ApplyBuffer()
 
-"""Load sick file for buffer generation"""
-input_sick_file = ff.load_fn("Load input file to create buffer from", [("Geotiffs", "*.TIF"), ("All Files", "*.*")])
-buffer_destination = ff.load_dn("Select a directory where buffer file and output WSE scans will go")
+if __name__ == "__main__":
+    ff = FileFunctions()
+    ab = ApplyBuffer()
 
-ab.apply_buffer(input_sick_file, buffer_destination)
+    """Load sick file for buffer generation"""
+    input_sick_file = ff.load_fn("Load input file to create buffer from", [("Geotiffs", "*.TIF"), ("All Files", "*.*")])
+    buffer_destination = ff.load_dn("Select a directory where buffer file and output WSE scans will go")
+
+    ab.apply_buffer(input_sick_file, buffer_destination)
