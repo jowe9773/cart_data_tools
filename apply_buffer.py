@@ -1,7 +1,9 @@
 """Load packages and modules"""
 import os
 from osgeo import gdal
+import pandas as pd
 import geopandas as gpd
+from shapely.geometry import Point
 from functions import FileFunctions, FindCentersFunctions
 
 class ApplyBuffer:
@@ -10,7 +12,7 @@ class ApplyBuffer:
         print("Initialized Apply Buffer")
 
 
-    def apply_buffer(self, input_sick, buffer_dst):
+    def apply_buffer(self, input_sick, buffer_dst, wse_file):
 
         """Instantiate classes"""
         fcf = FindCentersFunctions()
@@ -67,6 +69,31 @@ class ApplyBuffer:
             except:
                 print(f"{file_to_remove} does not exist, so does not need to be removed.")
 
+        """Apply buffer to WSE data"""
+        # Load the points and polygons shapefiles
+        points_df = gpd.read_file(wse_file) 
+        polygons_gdf = gpd.read_file(buffer_dst + "/" + os.path.basename(input_sick).split(".")[0] + "_buffer.shp")  
+
+        # Convert the DataFrame to a GeoDataFrame
+        # Assuming your CSV has columns 'longitude' and 'latitude'
+        # Convert the DataFrame to a GeoDataFrame using x and y columns
+        points_gdf = gpd.GeoDataFrame(
+            points_df,
+            geometry=gpd.points_from_xy(points_df.X, points_df.Y),  # Replace 'x' and 'y' with your column names
+            crs="EPSG:32615"  # Set the CRS to UTM Zone 15N
+        )
+
+        # Ensure CRS matches between points and polygons
+        if points_gdf.crs != polygons_gdf.crs:
+            polygons_gdf = polygons_gdf.to_crs(points_gdf.crs)
+
+        # Perform the spatial query: Find points NOT in polygons
+        points_outside_polygons = points_gdf[~points_gdf.geometry.apply(
+            lambda point: polygons_gdf.contains(point).any()
+        )]
+
+        # Save the filtered points to a new shapefile
+        points_outside_polygons.to_file(buffer_dst + "/"+ os.path.basename(wse_file), driver="ESRI Shapefile")
 
 
 if __name__ == "__main__":
@@ -76,5 +103,6 @@ if __name__ == "__main__":
     """Load sick file for buffer generation"""
     input_sick_file = ff.load_fn("Load input file to create buffer from", [("Geotiffs", "*.TIF"), ("All Files", "*.*")])
     buffer_destination = ff.load_dn("Select a directory where buffer file and output WSE scans will go")
+    wse_file = ff.load_fn("Select water surface elevation file", [("CSV files", ".CSV")])
 
-    ab.apply_buffer(input_sick_file, buffer_destination)
+    ab.apply_buffer(input_sick_file, buffer_destination, wse_file)

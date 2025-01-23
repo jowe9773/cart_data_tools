@@ -48,7 +48,7 @@ class ApplyTopoCorrection:
 
         print(filtered_df)
 
-        output_tiff = output_location + "/" + os.path.basename(misaligned_scan_file).split(".")[0] + "_aligned.tif"
+        output_tiff = output_location + "/" + os.path.basename(misaligned_scan_file)
 
         """Apply the GCP points and align the misaligned scan with the reference scan"""
         # Open the input GeoTIFF
@@ -56,7 +56,7 @@ class ApplyTopoCorrection:
 
 
         # Create a copy of the input file
-        misaligned_copy_tif = output_location + "/" + os.path.basename(misaligned_scan_file)
+        misaligned_copy_tif = output_location + "/" + os.path.basename(misaligned_scan_file).split(".")[0] + "_temp.tif"
         gdal.Translate(misaligned_copy_tif, misaligned_ds)
 
         # Clean up

@@ -2,22 +2,28 @@
 
 """Load neccesary packages and modules"""
 import pandas as pd
-from pprint import pprint
 import os
-from functions import FileFunctions, FindCentersFunctions, FindPairsFunctions
+import shutil
+from functions import FileFunctions
 from apply_correction_topo import ApplyTopoCorrection
 from apply_buffer import ApplyBuffer
 
 """Instantiate classes"""
 ff = FileFunctions()
+atc = ApplyTopoCorrection()
+ab = ApplyBuffer()
+
+"""Set thresholds for correction"""
+topo_threshold = 1.0
+wse_threshold = 2.51
 
 """Select files and directories containing necceary info"""
-experiment_summary = ff.load_fn("Select experiment summary file", [("CSV Files", "*.csv")])
-topo_dir = ff.load_dn("Select directory with all topography tif files")
-wse_dir = ff.load_dn("Select directory with all WSE csv files")
-offsets_dir = ff.load_dn("Select directory with all offsets files")
-out_location = ff.load_dn("Select directory to store outputs in") 
-#centroids_dir = ff.load_dn("Select directory with all centroids files")
+experiment_summary = "C:/Users/josie/local_data/experiment_metadata.csv" #ff.load_fn("Select experiment summary file", [("CSV Files", "*.csv")])
+topo_dir = "C:/Users/josie/local_data/20241118_SICK_scans" #ff.load_dn("Select directory with all topography tif files")
+wse_dir = "C:/Users/josie/local_data/20250122_MASSA_scans"#ff.load_dn("Select directory with all WSE csv files")
+offsets_dir = "C:/Users/josie/local_data/offsets_20250122" #ff.load_dn("Select directory with all offsets files")
+out_location = "C:/Users/josie/local_data/20250122_cleaned_cart_data" #ff.load_dn("Select directory to store outputs in") 
+centroids_dir = "C:/Users/josie/local_data/20241118_find_centers_shapefiles" #ff.load_dn("Select directory with all centroids files")
 
 """Create a set of pandas dataframes (one for each flood magnitude/forest stand density) that show all of the files that each experiment has"""
 #Autochthonous df
@@ -193,3 +199,79 @@ outnames = ["autoc_df", "h_pointfive_df", "h_one_df", "h_two_df", "h_four_df", "
 for i, df in enumerate(dfs):
     outpath = out_location + "/" + outnames[i] + ".csv"
     df.to_csv(outpath, index= False)
+
+
+"""Now we will use these dataframes to apply pre-processing corrections and save all neccesary files to folders for each experiment"""
+
+#for autochthonous floods
+autocthonous = [dfs[0]]
+
+for i, df in enumerate(autocthonous):
+    for j, row in df.iterrows():
+        #create a folder using the experiment name
+        experiment_name = row["Experiment"]
+        folder_path = out_location + "/" + experiment_name
+        os.makedirs(folder_path, exist_ok=True)
+
+        #check the prepost offset and determine if it is acceptable for alignment of topo scans
+        if row["prepostOffset"] < topo_threshold:
+            for i, scan in enumerate(["preTopo", "postTopo"]):
+                src = row[scan]
+                dst = folder_path + "/" + os.path.split(src)[1]
+
+
+
+#for high floods
+high = [dfs[1], dfs[2], dfs[3], dfs[4]]
+
+for i, df in enumerate(high):
+
+    for j, row in df.iterrows():
+
+        #create a folder using the experiment name
+        experiment_name = row["Experiment"]
+        folder_path = out_location + "/" + experiment_name
+
+        os.makedirs(folder_path, exist_ok=True)
+
+        #add wood topo
+        wood_topo_src = row["woodTopo"]
+        wood_topo_dst =  folder_path + "/" + os.path.split(wood_topo_src)[1]
+
+        shutil.copy(wood_topo_src, wood_topo_dst)
+
+
+        #check nowood offset and apply topo correction if unacceptable
+        if row["nowoodOffset"] < topo_threshold:
+            src = row["nowoodTopo"]
+            dst = folder_path + "/" + os.path.split(src)[1]
+            shutil.copy(src, dst)
+
+        if row["nowoodOffset"] >= topo_threshold:
+            print(f"{row["Experiment"]} needs a nowood topo correction")
+            #gather files for applying correction
+            src = row["nowoodTopo"]
+            wood_centroids_search_string = os.path.split(row["woodTopo"])[1].split(".")[0] + "_centroids"
+            wood_centroid_file = ff.find_files_with_string(centroids_dir, wood_centroids_search_string, ".shp")
+
+            nowood_centroids_search_string = os.path.split(row["nowoodTopo"])[1].split(".")[0] + "_centroids"
+            nowood_centroid_file = ff.find_files_with_string(centroids_dir, nowood_centroids_search_string, ".shp")
+
+            #apply correction
+            atc.apply_topo_correction(wood_centroid_file[0], nowood_centroid_file[0], src, folder_path)
+
+        #check previous offset and apply buffer if unacceptable
+        if row["previousOffset"] < wse_threshold:
+            src = row["nowoodWSE"]
+
+            if pd.isna(src) is not True:
+                dst = folder_path + "/" + os.path.split(src)[1]
+                shutil.copy(src, dst)
+
+        if row["previousOffset"] >= wse_threshold:
+            if pd.isna(src) is not True:
+                print(f"Buffers need to be applied to WSE on {row["Experiment"]}")
+                #gather the files needed to apply the buffer
+                nowood_sick = folder_path + "/" + os.path.split(row["nowoodTopo"])[1]
+
+                ab.apply_buffer(nowood_sick, folder_path, row["nowoodWSE"])
