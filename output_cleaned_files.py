@@ -16,7 +16,7 @@ experiment_summary = ff.load_fn("Select experiment summary file", [("CSV Files",
 topo_dir = ff.load_dn("Select directory with all topography tif files")
 wse_dir = ff.load_dn("Select directory with all WSE csv files")
 offsets_dir = ff.load_dn("Select directory with all offsets files")
-#out_location = ff.load_dn("Select directory to store outputs in") 
+out_location = ff.load_dn("Select directory to store outputs in") 
 #centroids_dir = ff.load_dn("Select directory with all centroids files")
 
 """Create a set of pandas dataframes (one for each flood magnitude/forest stand density) that show all of the files that each experiment has"""
@@ -164,7 +164,6 @@ for i, file in enumerate(offset_files):
     for j, row in dfs[i].iterrows():
             #if the dataframe does not contain the prepostOffset column (i.e. is not an autochthonous run), and the nowoodTopo column is empty:
         if "prepostOffset" not in dfs[i].columns and pd.isna(row["nowoodTopo"]):
-            print(row["Experiment"], "has no nowood scan")
 
             #identify the nowood column with the lowest offset
             to_compare = offset_df.loc[offset_df['Experiment'] == row["Experiment"], offset_df.filter(like='2024').columns]
@@ -189,4 +188,8 @@ for i, file in enumerate(offset_files):
             #put this nowood topo offset into the dataframe
             dfs[i].loc[j, "nowoodOffset"] = offset
 
+outnames = ["autoc_df", "h_pointfive_df", "h_one_df", "h_two_df", "h_four_df", "l_pointfive_df", "l_one_df", "l_two_df", "l_four_df"]
 
+for i, df in enumerate(dfs):
+    outpath = out_location + "/" + outnames[i] + ".csv"
+    df.to_csv(outpath, index= False)
