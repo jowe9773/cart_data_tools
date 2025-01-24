@@ -4,6 +4,7 @@
 import tkinter as tk
 from tkinter import filedialog
 from matplotlib import pyplot as plt
+import pandas as pd
 import numpy as np
 import rasterio
 from rasterio.enums import Resampling
@@ -100,6 +101,22 @@ class FileFunctions:
         sorted_file_list = sorted(file_list, key=extract_sort_key)
 
         return sorted_file_list
+    
+    def csv_to_shp_WSE(self, wse_file, output_location):
+        #load points into a dataframe
+        points_df = gpd.read_file(wse_file) 
+
+        #convert to a geoddataframe
+        points_gdf = gpd.GeoDataFrame(
+            points_df,
+            geometry=gpd.points_from_xy(points_df.X, points_df.Y),  # Replace 'x' and 'y' with your column names
+            crs="EPSG:32615"  # Set the CRS to UTM Zone 15N
+        )
+
+        #save geodataframe as shapefile
+        points_gdf.to_file(output_location + "/"+ os.path.basename(wse_file), driver="ESRI Shapefile")
+
+
     
 class FindCentersFunctions:
     def __init__(self):

@@ -75,7 +75,6 @@ class ApplyBuffer:
         polygons_gdf = gpd.read_file(buffer_dst + "/" + os.path.basename(input_sick).split(".")[0] + "_buffer.shp")  
 
         # Convert the DataFrame to a GeoDataFrame
-        # Assuming your CSV has columns 'longitude' and 'latitude'
         # Convert the DataFrame to a GeoDataFrame using x and y columns
         points_gdf = gpd.GeoDataFrame(
             points_df,

@@ -41,7 +41,9 @@ for key, scanset in wse_files_by_scanset.items():
     ch_scan_df = None
     for i, file in enumerate(scanset):
         scan_data = pd.read_csv(file, header=26, skip_blank_lines=True, usecols=["Pass",  "X", "Y", "Massa Target"])
+    
         if len(scan_data) < 1000:
+           scan_data["Y"] = scan_data["Y"]*-1
            scan_data["Pass"] = 6
            ch_scan_df = scan_data
 
