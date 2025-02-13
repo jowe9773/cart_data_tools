@@ -3,16 +3,17 @@
 #import packages and modules
 import os
 from pprint import pprint
-from calculate_volume import CalculateVolume
+from calculate_volume import CalculateVolume, DetectChannelBottom
 from functions import FileFunctions
 
 #instantiate classes
+dcv = DetectChannelBottom()
 cv = CalculateVolume()
 ff = FileFunctions()
 
-
 # Set your root folder
 root_folder = ff.load_dn("Choose a file containing all folders with data")
+#channel_thresh =  -15
 
 experiment_folder_list = []
 
@@ -33,11 +34,38 @@ for i, exp_folder in enumerate(experiment_folder_list):
     nowood_fn = ff.find_files_with_string(exp_folder, "nowood", ".tif")
     wood_fn = ff.find_files_with_string(exp_folder, "_wood", ".tif")
     remobilization_fn = ff.find_files_with_string(exp_folder, "_remobilization", ".tif")
+    real_wood_fn = ff.find_files_with_string(exp_folder, "_true_wood.", ".shp")
+    real_wood_remobilization_fn = ff.find_files_with_string(exp_folder, "_true_wood_remobilization", ".shp")
+
+
+    print(" ")
+    print(" ")
+
+    print(exp_folder)
+    print("nowood tif: ", nowood_fn)
+    print("wood tif: ", wood_fn)
+    print("remobilization tif: ", remobilization_fn)
+    print("wood polygons fn: ", real_wood_fn)
+    print("remobilization polygons fn: ", real_wood_remobilization_fn)
+ 
+    print(" ")
 
     #find wood volume after high/low flood
     if len(nowood_fn)>0 and len(wood_fn)>0:
-        cv.calculate_volume(nowood_fn[0], wood_fn[0], exp_folder)
+        print(f"calculating volume for {exp_folder} wood")
+        cv.calculate_volume(nowood_fn[0], wood_fn[0], real_wood_fn[0], exp_folder)
+        
 
     #find wood volume after remobilization flood
     if len(nowood_fn)>0 and len(remobilization_fn)>0:
-        cv.calculate_volume(nowood_fn[0], remobilization_fn[0], exp_folder, remobilization= "Y")
+        print(f"calculating volume for {exp_folder} remobilization")
+        cv.calculate_volume(nowood_fn[0], remobilization_fn[0], real_wood_remobilization_fn[0], exp_folder, remobilization = "Y")
+
+"""    #find wood area after high/low flood
+    if len(nowood_fn)>0 and len(wood_fn)>0:
+        cv.detect_wood(nowood_fn[0], wood_fn[0], exp_folder, channel_thresh)
+
+    #find wood area after remobilization flood
+    if len(nowood_fn)>0 and len(remobilization_fn)>0:
+        cv.detect_wood(nowood_fn[0], remobilization_fn[0], exp_folder, channel_thresh, remobilization = True)"""
+ 
