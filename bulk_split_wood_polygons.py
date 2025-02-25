@@ -7,7 +7,7 @@ from calculate_volume import CalculateVolume, DetectChannelBottom
 from functions import FileFunctions
 
 #instantiate classes
-dcv = DetectChannelBottom()
+dcb = DetectChannelBottom()
 cv = CalculateVolume()
 ff = FileFunctions()
 
@@ -36,7 +36,7 @@ for i, exp_folder in enumerate(experiment_folder_list):
     remobilization_fn = ff.find_files_with_string(exp_folder, "_remobilization", ".tif")
     real_wood_fn = ff.find_files_with_string(exp_folder, "_true_wood.", ".shp")
     real_wood_remobilization_fn = ff.find_files_with_string(exp_folder, "_true_wood_remobilization", ".shp")
-    channel_fn = ff.find_files_with_string(exp_folder, "_channel", "*.shp")
+    channel_fn = ff.find_files_with_string(exp_folder, "_channel", ".shp")
 
 
     print(" ")
@@ -53,13 +53,11 @@ for i, exp_folder in enumerate(experiment_folder_list):
     print(" ")
 
     #find wood volume after high/low flood
-    if len(nowood_fn)>0 and len(wood_fn)>0:
-        print(f"calculating volume for {exp_folder} wood")
-        cv.calculate_volume(nowood_fn[0], wood_fn[0], real_wood_fn[0], exp_folder)
+    if len(nowood_fn)>0 and len(wood_fn)>0 and "20240714" not in exp_folder:
+        print(f"splitting wood for {exp_folder} wood")
+        dcb.split_polygons_by_ch_fp(real_wood_fn[0], channel_fn[0], exp_folder + "/" + os.path.split(wood_fn[0])[1].split("_")[0] + "_" + os.path.split(wood_fn[0])[1].split("_")[1] + "_split_wood.shp")
         
-
-    #find wood volume after remobilization flood
-    if len(nowood_fn)>0 and len(remobilization_fn)>0:
-        print(f"calculating volume for {exp_folder} remobilization")
-        cv.calculate_volume(nowood_fn[0], remobilization_fn[0], real_wood_remobilization_fn[0], exp_folder, remobilization = "Y")
- 
+        #find wood volume after remobilization flood
+    if len(nowood_fn)>0 and len(remobilization_fn)>0 and "20240714" not in exp_folder:
+        print(f"splitting wood for {exp_folder} remobilization")
+        dcb.split_polygons_by_ch_fp(real_wood_remobilization_fn[0], channel_fn[0], exp_folder + "/" + os.path.split(wood_fn[0])[1].split("_")[0] + "_" + os.path.split(wood_fn[0])[1].split("_")[1] + "_split_remobilized.shp")

@@ -108,7 +108,7 @@ class DetectChannelBottom:
 
         return gdf_exploded
 
-    def detect_channel_bottom(self, input_raster, max_elev, output_file = False):
+    def detect_channel_bottom(self, input_raster, max_elev, channel = False, output_file = False):
         """detrend data"""
         detrended_raster, profile = self.detrend_data(input_raster)
 
@@ -120,7 +120,11 @@ class DetectChannelBottom:
         polygons_gdf = self.polygonize_mask(mask, profile)
 
         """remove small areas of "channel" within the floodplain"""
-        cleaned_fp_gdf = self.filter_polygons(polygons_gdf, 1,0,10000,)
+        if channel == True:
+            cleaned_fp_gdf = self.filter_polygons(polygons_gdf, 1,0,5000000)
+
+        else:
+            cleaned_fp_gdf = self.filter_polygons(polygons_gdf, 1,0,10000)
 
         """remove small areas of "floodplain" within the channel"""
         if output_file == False:
@@ -130,6 +134,87 @@ class DetectChannelBottom:
             cleaned_fp_and_channel_gdf = self.filter_polygons(cleaned_fp_gdf, 0, 1, 5000, export = output_file)
 
         return cleaned_fp_and_channel_gdf
+    
+    def split_polygons_by_ch_fp(self, wood_polygons_fn, channel_polygons_fn, out_fn = False):
+        #load wood polygons
+        wood_polygons = gpd.read_file(wood_polygons_fn)
+
+
+        #load channel polygons
+        channel_polygons = gpd.read_file(channel_polygons_fn)
+
+        # Perform overlay to get the intersection (overlapping area)
+        overlapping_gdf = gpd.overlay(wood_polygons, channel_polygons, how="intersection")
+
+        #create a new gdf with only the infos you want
+        split_wood_gdf = overlapping_gdf.loc[:, ["jam", "piece", "piece_size", "DN_2", "geometry"]].copy()
+
+        split_wood_gdf = split_wood_gdf.rename(columns={"DN_2" : "Channel?"})
+
+        #lets deal with the individual pieces first
+        ind_pieces_gdf = split_wood_gdf[split_wood_gdf["jam"] == 0]
+        # Dissolve by "piece" and "channel"
+        ind_dissolved_gdf = ind_pieces_gdf.dissolve(by=["piece", "Channel?"], as_index=False)
+
+        #now lets deal with the jams
+        jams_gdf = split_wood_gdf[split_wood_gdf["jam"] != 0]
+        # Dissolve by "piece" and "channel"
+        jams_dissolved_gdf = jams_gdf.dissolve(by=["jam", "Channel?"], as_index=False)
+
+        #combnine the singles and jams into one gdf
+        split_wood_gdf = gpd.GeoDataFrame(pd.concat([ind_dissolved_gdf, jams_dissolved_gdf], ignore_index=True))
+
+        print("Ind pieces")
+        print(ind_dissolved_gdf)
+
+        print("Jams")
+        print(jams_dissolved_gdf)
+
+        print("combined")
+        print(split_wood_gdf)
+
+
+        if out_fn != False:
+            print("saving wood polygons to file")
+            split_wood_gdf.to_file(out_fn)
+
+        return split_wood_gdf
+
+    def calculate_centroids(self, polygons_layer_fn, out_fn = False):
+        #load polygons
+        polygons_gdf = gpd.read_file(polygons_layer_fn)
+
+        #first lets deal with the jams
+        jams_gdf = polygons_gdf[polygons_gdf["jam"] != 0]
+        # Dissolve all polygons by "jam" (merging multiple pieces into one per jam)
+        jams_dissolved_gdf = jams_gdf.dissolve(by="jam", as_index=False)
+
+        jams_dissolved_gdf["geometry"] = jams_dissolved_gdf.geometry.centroid
+
+        print("Jams centroids: ", jams_dissolved_gdf)
+
+
+        #now lets deal with the individual pieces
+        ind_gdf = polygons_gdf[polygons_gdf["jam"] == 0]
+
+        # Dissolve all polygons by "jam" (merging multiple pieces into one per jam)
+        ind_dissolved_gdf = ind_gdf.dissolve(by="piece", as_index=False)
+
+        ind_dissolved_gdf["geometry"] = ind_dissolved_gdf.geometry.centroid
+
+        print("individual piece centroids: ", ind_dissolved_gdf)
+
+
+        #combnine the singles and jams into one gdf
+        all_centroids_gdf = gpd.GeoDataFrame(pd.concat([ind_dissolved_gdf, jams_dissolved_gdf], ignore_index=True))
+        print("All centroids: ", all_centroids_gdf)
+
+        if out_fn != False:
+            print("saving wood polygons to file")
+            all_centroids_gdf.to_file(out_fn)
+
+        return all_centroids_gdf
+
 
 class CalculateVolume:
 

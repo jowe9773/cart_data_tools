@@ -1,13 +1,10 @@
-#bulk_calculate_volume.py
-
-#import packages and modules
 import os
 from pprint import pprint
 from calculate_volume import CalculateVolume, DetectChannelBottom
 from functions import FileFunctions
 
 #instantiate classes
-dcv = DetectChannelBottom()
+dcb = DetectChannelBottom()
 cv = CalculateVolume()
 ff = FileFunctions()
 
@@ -36,11 +33,7 @@ for i, exp_folder in enumerate(experiment_folder_list):
     remobilization_fn = ff.find_files_with_string(exp_folder, "_remobilization", ".tif")
     real_wood_fn = ff.find_files_with_string(exp_folder, "_true_wood.", ".shp")
     real_wood_remobilization_fn = ff.find_files_with_string(exp_folder, "_true_wood_remobilization", ".shp")
-    channel_fn = ff.find_files_with_string(exp_folder, "_channel", "*.shp")
-
-
-    print(" ")
-    print(" ")
+    
 
     print(exp_folder)
     print("nowood tif: ", nowood_fn)
@@ -48,18 +41,12 @@ for i, exp_folder in enumerate(experiment_folder_list):
     print("remobilization tif: ", remobilization_fn)
     print("wood polygons fn: ", real_wood_fn)
     print("remobilization polygons fn: ", real_wood_remobilization_fn)
-    print("chanel: ", channel_fn)
  
     print(" ")
 
     #find wood volume after high/low flood
     if len(nowood_fn)>0 and len(wood_fn)>0:
-        print(f"calculating volume for {exp_folder} wood")
-        cv.calculate_volume(nowood_fn[0], wood_fn[0], real_wood_fn[0], exp_folder)
-        
-
-    #find wood volume after remobilization flood
-    if len(nowood_fn)>0 and len(remobilization_fn)>0:
-        print(f"calculating volume for {exp_folder} remobilization")
-        cv.calculate_volume(nowood_fn[0], remobilization_fn[0], real_wood_remobilization_fn[0], exp_folder, remobilization = "Y")
- 
+        output_file = (exp_folder + "/" + os.path.split(wood_fn[0])[1].split("_")[0] + "_" + os.path.split(wood_fn[0])[1].split("_")[1] + "_channel.shp")
+        print("output file: ", output_file)
+        print(f"finding channel for {exp_folder.split("\\")[1]}")
+        dcb.detect_channel_bottom(nowood_fn[0],-10, channel=True, output_file=output_file)
