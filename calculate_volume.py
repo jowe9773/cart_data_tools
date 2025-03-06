@@ -330,6 +330,7 @@ class CalculateVolume:
 
         # Load the polygons shapefile
         polygons = gpd.read_file(polygons_file)
+        print(polygons)
 
         with rasterio.open(difference_path) as src:
         # Reproject polygons to match raster CRS if necessary
@@ -359,26 +360,14 @@ class CalculateVolume:
 
         if 'jam' in polygons.columns and 'cell_sum' in polygons.columns:
 
-            # Group by the "jam" attribute
-            grouped = polygons.groupby("jam")
-
-            # Combine polygons into a multipolygon and sum the "cell_sum" attribute
-            combined = grouped.agg({
-                "geometry": lambda x: x.unary_union,  # Combine geometries into a multipolygon
-                "cell_sum": "sum"                    # Sum the "cell_sum" values
-            }).reset_index()
-
-            # Create a new GeoDataFrame
-            combined_gdf = gpd.GeoDataFrame(combined, geometry="geometry", crs=polygons.crs)
-
             # Save the updated shapefile with the new attribute
             if remobilization == "N":
-                combined_gdf.to_file(output_location + "/" + os.path.split(after_path)[1].split("_")[0] + "_" + os.path.split(after_path)[1].split("_")[1] + "-wood_volumes.shp", driver="ESRI shapefile")
+                polygons.to_file(output_location + "/" + os.path.split(after_path)[1].split("_")[0] + "_" + os.path.split(after_path)[1].split("_")[1] + "-wood_volumes.shp", driver="ESRI shapefile")
 
                 print(f"output file: {output_location + "/" + os.path.split(after_path)[1].split("_")[0] + "_" + os.path.split(after_path)[1].split("_")[1] + "-wood_volumes.shp"}")
 
             if remobilization == "Y":
-                combined_gdf.to_file(output_location + "/" + os.path.split(after_path)[1].split("_")[0] + "_" + os.path.split(after_path)[1].split("_")[1] + "-remobilized_wood_volumes.shp", driver="ESRI shapefile")
+                polygons.to_file(output_location + "/" + os.path.split(after_path)[1].split("_")[0] + "_" + os.path.split(after_path)[1].split("_")[1] + "-remobilized_wood_volumes.shp", driver="ESRI shapefile")
 
                 print(f"output file: {output_location + "/" + os.path.split(after_path)[1].split("_")[0] + "_" + os.path.split(after_path)[1].split("_")[1] + "-remobilized_wood_volumes.shp"}")
         else:

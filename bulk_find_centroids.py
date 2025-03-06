@@ -1,5 +1,3 @@
-#bulk_calculate_volume.py
-
 #import packages and modules
 import os
 from pprint import pprint
@@ -7,7 +5,7 @@ from calculate_volume import CalculateVolume, DetectChannelBottom
 from functions import FileFunctions
 
 #instantiate classes
-dcv = DetectChannelBottom()
+dcb = DetectChannelBottom()
 cv = CalculateVolume()
 ff = FileFunctions()
 
@@ -30,36 +28,25 @@ pprint(experiment_folder_list)
 for i, exp_folder in enumerate(experiment_folder_list):
     filenames = os.listdir(exp_folder)
 
-    #identify neccesary files for calculating volume
+    #identify neccesary files for calculating centroids
+    split_wood_fn = ff.find_files_with_string(exp_folder, "split_wood", ".shp")
+    split_remobilized_fn = ff.find_files_with_string(exp_folder, "split_remobilized", ".shp")
     nowood_fn = ff.find_files_with_string(exp_folder, "nowood", ".tif")
     wood_fn = ff.find_files_with_string(exp_folder, "_wood", ".tif")
     remobilization_fn = ff.find_files_with_string(exp_folder, "_remobilization", ".tif")
-    real_wood_fn = ff.find_files_with_string(exp_folder, "_split_wood.", ".shp")
-    real_wood_remobilization_fn = ff.find_files_with_string(exp_folder, "_split_remobilized", ".shp")
-    channel_fn = ff.find_files_with_string(exp_folder, "_channel", "*.shp")
+    real_wood_fn = ff.find_files_with_string(exp_folder, "_true_wood.", ".shp")
+    real_wood_remobilization_fn = ff.find_files_with_string(exp_folder, "_true_wood_remobilization", ".shp")
+    channel_fn = ff.find_files_with_string(exp_folder, "_channel", ".shp")
 
 
-    print(" ")
-    print(" ")
-
-    print(exp_folder)
-    print("nowood tif: ", nowood_fn)
-    print("wood tif: ", wood_fn)
-    print("remobilization tif: ", remobilization_fn)
-    print("wood polygons fn: ", real_wood_fn)
-    print("remobilization polygons fn: ", real_wood_remobilization_fn)
-    print("chanel: ", channel_fn)
- 
-    print(" ")
 
     #find wood volume after high/low flood
     if len(nowood_fn)>0 and len(wood_fn)>0 and "20240714" not in exp_folder:
-        print(f"calculating volume for {exp_folder} wood")
-        cv.calculate_volume(nowood_fn[0], wood_fn[0], real_wood_fn[0], exp_folder)
-        
+        print(f"finding centroids for {exp_folder} wood")
+        dcb.calculate_centroids(split_wood_fn[0], exp_folder + "/" + os.path.split(wood_fn[0])[1].split("_")[0] + "_" + os.path.split(wood_fn[0])[1].split("_")[1] + "_wood_centroids.shp")
+
 
     #find wood volume after remobilization flood
     if len(nowood_fn)>0 and len(remobilization_fn)>0 and "20240714" not in exp_folder:
-        print(f"calculating volume for {exp_folder} remobilization")
-        cv.calculate_volume(nowood_fn[0], remobilization_fn[0], real_wood_remobilization_fn[0], exp_folder, remobilization = "Y")
- 
+        print(f"finding centroids for {exp_folder} remobilization")
+        dcb.calculate_centroids(split_remobilized_fn[0], exp_folder + "/" + os.path.split(wood_fn[0])[1].split("_")[0] + "_" + os.path.split(wood_fn[0])[1].split("_")[1] + "_remobilized_centroids.shp")
