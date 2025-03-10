@@ -6,7 +6,7 @@ from functions import FileFunctions
 #instantiate classes
 ff = FileFunctions()
 
-exp_type = "low"
+exp_type = "high"
 #load jam info for all jams from all experiments
 wood_poly_fn = ff.load_fn("Choose jam info layer", [("csv files", "*.csv")])
 jams = pd.read_csv(wood_poly_fn)
@@ -30,13 +30,13 @@ for i, row in jams.iterrows():
     jams.loc[i, "porosity"] = condition_match.iloc[0]["mean"]
     jams.loc[i, "rel_uncert"] = condition_match.iloc[0]["Rel_Uncertainty"]
 
-
-print(jams)
-
 #now lets find volumes 
 jams["est_wood_volume"] = jams["jam_vol"]* (1- jams["porosity"])
+jams["est_fp_wood_volume"] = (1-jams["frac_vol_in_ch"]) * jams["jam_vol"]* (1- jams["porosity"])
+jams["est_ch_wood_volume"] = jams["frac_vol_in_ch"] * jams["jam_vol"]* (1- jams["porosity"])
 
 print(jams)
+
 
 #now lets save this information to a csv
 #now lets save the bin stats to a csv to use later
