@@ -39,7 +39,7 @@ for i, row in count_data_df.iterrows():
         print("centroids file: ", wood_centroids)
         print("Jams shapefile:", remote_jam_volumes_wood_fn)
 
-        if "20240805" not in exp_name and "20240807" not in exp_name and "20240714" not in exp_name:
+        if "20240714" not in exp_name:
             if len(remote_jam_volumes_remobilized_fn) >= 1 and len(remote_jam_volumes_wood_fn) >= 1:
                 #load wood jam volumes and centroids
                 jam_volumes = gpd.read_file(remote_jam_volumes_wood_fn[0])
