@@ -83,6 +83,6 @@ all_exp_df["abs_uncert_fp_ret_cap"] = all_exp_df["fp_ret_cap"] * all_exp_df["fp_
 all_exp_df["abs_uncert_ch_ret_cap"] = all_exp_df["ch_ret_cap"] * all_exp_df["ch_wood_rel_uncert"]
 
 #now remove remobilization plots
-exps = all_exp_df[all_exp_df["flood_type"] != "R"]
+#exps = all_exp_df[all_exp_df["flood_type"] != "R"]
 
-pf.volume_bar_plots(exps, "exp_date", "ret_cap", "abs_uncert_ret_cap", "flood_type", color_map = "tab10", groupby_cols=["trans_reg", "fsd"])
+pf.volume_bar_plots(all_exp_df, "exp_date", "ch_ret_cap", "abs_uncert_ch_ret_cap", "flood_type", color_map = "tab10", groupby_cols=["trans_reg", "fsd"])

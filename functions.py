@@ -200,7 +200,113 @@ class PlottingFunctions:
         plt.subplots_adjust(left=0.15, right=0.9, bottom=0.1, top=0.9, wspace=0.3, hspace=0.4)
         plt.show()
 
-    
+    def plot_jam_size_dist(self, data, boxplot_name, y_value, comparison_var_1, color_map = "tab10", groupby_cols=False):
+        """
+        This function plots box and whisker charts across up to three comparison variables. 
+        The first comparison variable will be plotted in different colors on the same subplot.
+        The second comparison variable will be plotted in different subplots across the same row.
+        The third comparison variable will be plotted in different subplots across different columns.
+        """
+        def set_colormap(data, comparison_var_1, color_map):
+            unique_vals_comp_1 = sorted(data[comparison_var_1].unique())
+            colormap = plt.get_cmap(color_map, len(unique_vals_comp_1))  
+            norm = mcolors.Normalize(vmin=0, vmax=len(unique_vals_comp_1) - 1)
+            return {value: colormap(norm(i)) for i, value in enumerate(unique_vals_comp_1)}
+        
+        def plot_subplot(ax, subset, boxplot_name, y_min, y_max, comparison_var_1, unique_color_map):
+
+            print(f"subset data: {subset}")
+
+            #lets make labels by experiment name
+            labels = subset[boxplot_name].unique()
+            colors = []
+
+            for i, label in enumerate(labels):
+                subset_rows = subset[subset[boxplot_name] == label]
+                if subset_rows.empty:
+                    print(f"Warning: No data found for label {label} in subset.")
+                    continue
+
+                comp_var = subset_rows.iloc[0][comparison_var_1]
+                
+                color = unique_color_map[comp_var]
+                
+                print(label)
+                print(color)
+
+                colors.append(color)
+
+
+            # Group by experiment name
+            grouped_data = [subset[subset[boxplot_name] == label][y_value] for label in labels]
+            
+            #make a boxplot for each group of data
+            bplot = ax.boxplot(grouped_data,patch_artist=True)
+            
+            #set the labels and the y axis extent
+            ax.set_xticklabels(labels, rotation=45, ha="right")
+            ax.set_ylim(y_min, y_max)
+            
+            #color the boxes according to the comparison variable 1 and the colormap
+            for patch, color in zip(bplot['boxes'], colors):
+                
+                patch.set_facecolor(color)
+
+        # Step 1: Choose a colormap
+        unique_color_map = set_colormap(data, comparison_var_1, color_map)
+        print("Unique Color Map")
+        print(unique_color_map)
+
+        global_y_min = data[y_value].min()  # Minimum considering error bars
+        global_y_max = data[y_value].max()  # Maximum considering error bars
+
+        if not groupby_cols:
+            fig, axs = plt.subplots(1, 1, squeeze=False)
+            plot_subplot(axs[0,0], data, boxplot_name, global_y_min, global_y_max, comparison_var_1, unique_color_map)
+
+        elif len(groupby_cols) == 1:
+            width = len(data[groupby_cols[0]].unique())  # Number of unique categories
+
+            fig, axs = plt.subplots(1, width, squeeze=False, figsize=(width*5, 5))
+
+            grouped = data.groupby(groupby_cols[0])
+            unique_cats = sorted(data[groupby_cols[0]].unique(), key=str)
+
+            for column, category in enumerate(unique_cats):
+                subset = grouped.get_group(category)
+                print(f"Plotting: {category} at column {column}")
+                plot_subplot(axs[0, column], subset, boxplot_name, global_y_min, global_y_max, comparison_var_1, unique_color_map)
+                axs[0, column].set_title(f"{groupby_cols[0]}: {category}", fontsize=14, fontweight="bold")
+            
+        else:
+            unique_cats = sorted(data[groupby_cols[0]].unique())  
+            unique_subcats = sorted(data[groupby_cols[1]].unique())  
+
+            height, width = len(unique_cats), len(unique_subcats)
+            fig, axs = plt.subplots(height, width, squeeze=False, figsize=(width * 5, height * 5))
+
+            grouped = data.groupby(groupby_cols)
+
+            for (category, subcategory), subset in grouped:
+                row, col = unique_cats.index(category), unique_subcats.index(subcategory)
+                plot_subplot(axs[row, col], subset, boxplot_name, global_y_min, global_y_max, comparison_var_1, unique_color_map)
+
+            # Add column titles
+            for col, subcategory in enumerate(unique_subcats):
+                axs[0, col].set_title(f"{groupby_cols[1]}: {subcategory}", fontsize=14, fontweight="bold")
+
+            # Add row labels
+            for row, category in enumerate(unique_cats):
+                axs[row, 0].annotate(f"{groupby_cols[0]}: {category}", xy=(-0.4, 0.5), xycoords='axes fraction',
+                                     fontsize=14, fontweight="bold", ha="right", va="center", rotation=90)
+
+        handles = [plt.Line2D([0], [0], color=unique_color_map[value], lw=6, label=value) for value in unique_color_map]
+        fig.legend(handles=handles, loc='upper right')
+
+        #plt.tight_layout()
+        plt.subplots_adjust(left=0.15, right=0.9, bottom=0.1, top=0.9, wspace=0.3, hspace=0.4)
+        plt.show()
+
 class FindCentersFunctions:
     def __init__(self):
         print("Initialized Find Centers Functions")
